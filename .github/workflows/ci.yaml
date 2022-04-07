@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches:    
+      - '*'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust:
+          - stable
+          - beta
+          - 1.51.0
+          - nightly
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          override: true
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v1
+
+      - name: cargo clean
+        uses: actions-rs/cargo@v1
+        with:
+          command: clean
+
+      - name: Downgrade dependencies to minimal versions
+        uses: actions-rs/cargo@v1
+        if: ${{ matrix.rust == 'nightly' }}
+        with: 
+          command: update
+          args: -Z minimal-versions
+
+      - name: Build (no features)
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+
+      - name: Run tests (release, no features)
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
