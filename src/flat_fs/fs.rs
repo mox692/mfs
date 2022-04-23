@@ -3,12 +3,15 @@ use std::marker::PhantomData;
 
 pub struct FlatFS<T> {
     mem_size: usize,
-    _marker: PhantomData<T>
+    _marker: PhantomData<T>,
 }
 
 impl<T> FlatFS<T> {
     pub fn new(mem_size: usize) -> Self {
-        return Self { mem_size: mem_size, _marker: PhantomData};
+        return Self {
+            mem_size: mem_size,
+            _marker: PhantomData,
+        };
     }
     pub fn display(&self) {
         for i in 0..self.mem_size {
