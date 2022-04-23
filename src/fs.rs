@@ -1,6 +1,8 @@
-// s: データ表現
-// u: なんか数値 or addr (iterで回したい)
-pub trait FS<S, U> {
-    fn write(&mut self, file_name: S, contents: S) -> Option<U>;
-    fn read(&self, file_name: S) -> Option<U>;
+use crate::MyError;
+
+// File systemのinterface
+// ファイル名(に、よらないかもしれないが、)をとって、contentsを返す.
+pub trait FS<K, V> {
+    fn write(&mut self, file_name: K, contents: V) -> Result<(), MyError>;
+    fn read(&self, file_name: K) -> Option<V>;
 }

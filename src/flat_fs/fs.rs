@@ -1,35 +1,21 @@
 use super::super::FS;
 use std::marker::PhantomData;
+use crate::MyError;
 
-pub struct FlatFS<T> {
-    mem_size: usize,
-    _marker: PhantomData<T>,
+// K, V共にstringでひとまず実装してしまう
+pub struct FlatFS {
 }
 
-impl<T> FlatFS<T> {
-    pub fn new(mem_size: usize) -> Self {
-        return Self {
-            mem_size: mem_size,
-            _marker: PhantomData,
-        };
-    }
-    pub fn display(&self) {
-        for i in 0..self.mem_size {
-            print!("| {: ^4} ", i);
-            if i % 10 == 9 {
-                println!("|");
-            }
-        }
-        println!("|");
-    }
-}
+impl FlatFS {}
 
-impl<S> FS<S, usize> for FlatFS<S> {
-    fn write(&mut self, file_name: S, contents: S) -> Option<usize> {
-        Some(self.mem_size)
+impl FS<String, String> for FlatFS {
+    // TODO:
+    fn write(&mut self, file_name: String, contents: String) -> Result<(), MyError> {
+        Ok(())
     }
-    fn read(&self, file_name: S) -> Option<usize> {
-        Some(self.mem_size)
+    // TODO:
+    fn read(&self, file_name: String) -> Option<String> {
+        Some(String::from("aa"))
     }
 }
 
