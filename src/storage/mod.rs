@@ -1,2 +1,2 @@
 mod storage;
-pub use storage::Storage;
+pub use storage::{MemStorage, Storage};
