@@ -1,56 +1,54 @@
 use super::super::FS;
-use crate::{MyError, Storage};
-use std::marker::PhantomData;
+use crate::{MemStorage, MyError, Storage};
+use std::{
+    collections::hash_map::DefaultHasher,
+    hash::{Hash, Hasher},
+    marker::PhantomData,
+};
 
 /// ひとまず、StorageのkeyもvalueもString型で実装してみる
-pub struct FlatFS<K, V, E, S, P, Q, D>
-where
-    S: Storage<P, Q, D, E>,
-{
+pub struct FlatFS<K, V, E, S> {
     pub storage: S,
     _marker_k: PhantomData<K>,
     _marker_v: PhantomData<V>,
     _marker_e: PhantomData<E>,
-    _marker_p: PhantomData<P>,
-    _marker_q: PhantomData<Q>,
-    _marker_d: PhantomData<D>,
 }
 
-impl<K, V, E, S, P, Q, D> FlatFS<K, V, E, S, P, Q, D>
-where
-    S: Storage<P, Q, D, E>,
-{
-    pub fn new(s: S) -> Self {
+//
+// 以下は具体実装
+//
+
+impl<'a, K, V, E> FlatFS<K, V, E, MemStorage<usize, usize, String, MyError>> {
+    pub fn new(s: MemStorage<usize, usize, String, MyError>) -> Self {
         Self {
             storage: s,
             _marker_e: PhantomData,
-            _marker_k: PhantomData,
-            _marker_v: PhantomData,
-            _marker_p: PhantomData,
-            _marker_q: PhantomData,
-            _marker_d: PhantomData,
+            _marker_k: PhantomData::<K>,
+            _marker_v: PhantomData::<V>,
         }
     }
 }
 
-impl<K, V, E, S, P, Q, D>  FS<K, V, E, P, Q> for FlatFS<K, V, E, S, P, Q, D> 
+impl<'a, K, V> FS<K, V, MyError>
+    for FlatFS<K, V, MyError, MemStorage<usize, usize, String, MyError>>
 where
-    S: Storage<P, Q, D, E>,
+    K: Hash,
+    V: ToString,
 {
     // TODO:
-    fn write(&mut self, file_name: K, contents: V) -> Result<(), E> {
+    fn write(&mut self, file_name: K, contents: V) -> Result<(), MyError> {
+        let mut f = DefaultHasher::new();
+        file_name.hash(&mut f);
+        let mut pos = 0;
+        f.write_usize(pos);
+        let str = contents.to_string();
+        let a = str.as_bytes().to_vec();
+        self.storage.write(pos, a);
         Ok(())
     }
     // TODO:
     fn read(&self, file_name: K) -> Option<V> {
-        // self.storage.read(self.key_to_offset(file_name), )
         None
-    }
-    fn key_to_offset(&self, key: K) -> Option<P> {
-        None
-    }
-    fn value_to_size(&self, value: V) -> Q {
-        ()
     }
 }
 

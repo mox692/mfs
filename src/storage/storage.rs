@@ -13,48 +13,56 @@ pub trait Storage<P, Q, D, E> {
 }
 
 pub struct MemStorage<P, Q, D, E> {
-    start_addr: *mut u8,
-    size: usize,
+    mem: [u8; 100000],
+    start_addr: P,
+    size: Q,
     _e: PhantomData<E>,
     _p: PhantomData<P>,
     _q: PhantomData<Q>,
     _v: D,
 }
 
-// ErrorはMyErrorで実装している
-impl<P, Q, D> Storage<P, Q, D, MyError>  for MemStorage<P, Q, D, MyError> {
+//
+// 以下は具体実装
+//
+impl Storage<usize, usize, Vec<u8>, MyError>
+    for MemStorage<usize, usize, String, MyError>
+{
     // TODO
-    fn write(&mut self, offset: P, data: D) -> Result<(), MyError> {
+    fn write(&mut self, offset: usize, data: Vec<u8>) -> Result<(), MyError> {
+        // self.mem[3] = data[1];
+        let pos = self.start_addr + offset;
         Ok(())
     }
     // TODO
-    fn read(&self, offset: P, size: Q) -> Option<D> {
+    fn read(&self, offset: usize, size: usize) -> Option<Vec<u8>> {
         None
     }
 }
 
-impl<P, Q, D> MemStorage<P, Q, D, MyError> {
+impl<'a> MemStorage<usize, usize, String, MyError> {
     // new use c_malloc to allocate memory.
     // valueの情報だけ、初期化の際にUserに入れてもらう. (もっといい方法がありそうだが...)
-    pub fn new(size: usize, value_info: D) -> Self {
+    pub fn new() -> Self {
         unsafe {
-            let ptr = malloc(size);
             Self {
-                start_addr: ptr as *mut u8,
-                size: size,
+                start_addr: 0,
+                size: 0,
+                mem: [0; 100000],
                 _e: PhantomData::<MyError>,
-                _p: PhantomData::<P>,
-                _q: PhantomData::<Q>,
-                _v: value_info,
+                _p: PhantomData::<usize>,
+                _q: PhantomData::<usize>,
+                _v: String::from(""),
             }
         }
     }
     // new_with_allocator use provided allocator to allocate memory.
+    //　使わない
     fn new_with_allocator<K>(
         allocator: K,
         size: usize,
         align: usize,
-        value_info: D,
+        value_info: String,
     ) -> Result<Self, MyError>
     where
         K: Allocator,
@@ -62,11 +70,12 @@ impl<P, Q, D> MemStorage<P, Q, D, MyError> {
         let l = Layout::from_size_align(size, align).unwrap();
         match allocator.allocate(l) {
             | Ok(block) => Ok(Self {
-                start_addr: block.as_mut_ptr(),
+                mem: [0; 100000],
+                start_addr: block.as_mut_ptr() as usize,
                 size: size,
                 _e: PhantomData::<MyError>,
-                _p: PhantomData::<P>,
-                _q: PhantomData::<Q>,
+                _p: PhantomData::<usize>,
+                _q: PhantomData::<usize>,
                 _v: value_info,
             }),
             | Err(e) => Err(MyError::with_msg("alloc: error")),

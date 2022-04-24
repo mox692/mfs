@@ -1,11 +1,13 @@
-use mfs::{FS, FlatFS, MemStorage, MyError};
+use mfs::{FlatFS, MemStorage, MyError, FS};
 
 #[test]
 fn test_init() {
     // storageを初期化
-    let s :MemStorage<usize, usize, String, MyError> = MemStorage::new(1000, String::from("aaa"));
+    let s: MemStorage<usize, usize, String, MyError> =
+        MemStorage::new();
+
     // fsを初期化
     let mut fs = FlatFS::new(s);
-    let a = fs.write(213, "cont").unwrap();
-    let got = fs.read(2);
+    let a = fs.write("fads", 2);
+    let got = fs.read("fasd");
 }
