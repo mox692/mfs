@@ -1,5 +1,4 @@
 use crate::MyError;
-use libc::malloc;
 use std::{
     alloc::{Allocator, Layout},
     marker::PhantomData,
@@ -9,7 +8,7 @@ use std::{
 pub trait Storage<P, Q, D, E> {
     // 一応仕様的にはwriteするデータのサイズはwriteする側で調整することにしている
     fn write(&mut self, offset: P, data: D) -> Result<(), E>;
-    fn read(&self, offset: P, size: Q) -> Option<D>;
+    fn read(&self, offset: P, size: Q) -> D;
 }
 
 pub struct MemStorage<P, Q, D, E> {
@@ -26,34 +25,42 @@ pub struct MemStorage<P, Q, D, E> {
 // 以下は具体実装
 //
 impl Storage<usize, usize, Vec<u8>, MyError>
-    for MemStorage<usize, usize, String, MyError>
+    for MemStorage<usize, usize, Vec<u8>, MyError>
 {
-    // TODO
+    // size以上の書き込みを行おうとした場合、Errorにして返す
     fn write(&mut self, offset: usize, data: Vec<u8>) -> Result<(), MyError> {
-        // self.mem[3] = data[1];
-        let pos = self.start_addr + offset;
+        if offset + data.len() > 100000 {
+            return Err(MyError::with_msg("out of bound error"));
+        }
+        for (i, v) in data.into_iter().enumerate() {
+            self.mem[offset + i] = v
+        }
         Ok(())
     }
-    // TODO
-    fn read(&self, offset: usize, size: usize) -> Option<Vec<u8>> {
-        None
+    // size以上の読み込みを行おうとした場合、最後の要素まで読んで返す
+    fn read(&self, offset: usize, size: usize) -> Vec<u8> {
+        let mut s = size;
+        if offset + s > 100000 {
+            s = 100000 - offset
+        }
+        let mut vec: Vec<u8> = vec![0; size];
+        for i in 0..size {
+            vec[i] = self.mem[offset + i]
+        }
+        vec
     }
 }
 
-impl<'a> MemStorage<usize, usize, String, MyError> {
-    // new use c_malloc to allocate memory.
-    // valueの情報だけ、初期化の際にUserに入れてもらう. (もっといい方法がありそうだが...)
+impl MemStorage<usize, usize, Vec<u8>, MyError> {
     pub fn new() -> Self {
-        unsafe {
-            Self {
-                start_addr: 0,
-                size: 0,
-                mem: [0; 100000],
-                _e: PhantomData::<MyError>,
-                _p: PhantomData::<usize>,
-                _q: PhantomData::<usize>,
-                _v: String::from(""),
-            }
+        Self {
+            start_addr: 0,
+            size: 0,
+            mem: [0; 100000],
+            _e: PhantomData::<MyError>,
+            _p: PhantomData::<usize>,
+            _q: PhantomData::<usize>,
+            _v: vec![],
         }
     }
     // new_with_allocator use provided allocator to allocate memory.
@@ -76,7 +83,7 @@ impl<'a> MemStorage<usize, usize, String, MyError> {
                 _e: PhantomData::<MyError>,
                 _p: PhantomData::<usize>,
                 _q: PhantomData::<usize>,
-                _v: value_info,
+                _v: vec![],
             }),
             | Err(e) => Err(MyError::with_msg("alloc: error")),
         }

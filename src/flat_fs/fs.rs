@@ -18,8 +18,8 @@ pub struct FlatFS<K, V, E, S> {
 // 以下は具体実装
 //
 
-impl<'a, K, V, E> FlatFS<K, V, E, MemStorage<usize, usize, String, MyError>> {
-    pub fn new(s: MemStorage<usize, usize, String, MyError>) -> Self {
+impl<'a, K, V, E> FlatFS<K, V, E, MemStorage<usize, usize, Vec<u8>, MyError>> {
+    pub fn new(s: MemStorage<usize, usize, Vec<u8>, MyError>) -> Self {
         Self {
             storage: s,
             _marker_e: PhantomData,
@@ -30,7 +30,7 @@ impl<'a, K, V, E> FlatFS<K, V, E, MemStorage<usize, usize, String, MyError>> {
 }
 
 impl<'a, K, V> FS<K, V, MyError>
-    for FlatFS<K, V, MyError, MemStorage<usize, usize, String, MyError>>
+    for FlatFS<K, V, MyError, MemStorage<usize, usize, Vec<u8>, MyError>>
 where
     K: Hash,
     V: ToString,
