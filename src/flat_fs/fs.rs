@@ -1,9 +1,10 @@
 use super::super::FS;
-use crate::{MemStorage, MyError, Storage};
+use crate::{MemStorage, MyError };
 use std::{
-    collections::{hash_map::DefaultHasher, HashMap},
+    collections::{HashMap},
+    error::Error,
     fmt::Debug,
-    hash::{Hash, Hasher},
+    hash::{Hash},
     marker::PhantomData,
 };
 
@@ -20,7 +21,7 @@ pub struct FlatFS<K, V, E, S> {
 // 以下は具体実装
 //
 
-impl<'a, K, V, E> FlatFS<K, V, E, MemStorage<usize, usize, Vec<u8>, MyError>> {
+impl<K, V, E> FlatFS<K, V, E, MemStorage<usize, usize, Vec<u8>, MyError>> {
     pub fn new(s: MemStorage<usize, usize, Vec<u8>, MyError>) -> Self {
         Self {
             storage: s,
@@ -32,29 +33,22 @@ impl<'a, K, V, E> FlatFS<K, V, E, MemStorage<usize, usize, Vec<u8>, MyError>> {
     }
 }
 
-impl<'a, K, V> FS<K, V, MyError>
+impl<K, V> FS<K, V, MyError>
     for FlatFS<K, V, MyError, MemStorage<usize, usize, Vec<u8>, MyError>>
 where
     K: Hash + Eq + Debug,
-    V: ToString + Debug,
+    V: Debug,
 {
-    fn write(&mut self, file_name: K, contents: V) -> Result<(), MyError> {
+    fn write(&mut self, file_name: K, contents: V) -> Result<(), Box<dyn Error>> {
+        // TODO: valueに、storageの位置情報をいれる、storageへの書き込み処理
         if let Err(e) = self.file_map.try_insert(file_name, contents) {
-            return Err(MyError::with_msg(String::from(format!("{}", e))));
+            // TODO: eをそのまま渡そうとするとErrorになる.
+            return Err(Box::<dyn Error>::from(e.to_string()));
         }
-
-        // let mut f = DefaultHasher::new();
-        // file_name.hash(&mut f);
-        // let mut pos = 0;
-        // f.write_usize(pos);
-        // let str = contents.to_string();
-        // let a = str.as_bytes().to_vec();
-        // self.storage.write(pos, a);
         Ok(())
     }
-    // TODO:
-    fn read(&self, file_name: K) -> Option<V> {
-        None
+    fn read(&self, file_name: K) -> Option<&V> {
+        self.file_map.get(&file_name) 
     }
 }
 
@@ -63,5 +57,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_new() {}
+    fn test_new() {
+        let s: MemStorage<usize, usize, Vec<u8>, MyError> = MemStorage::new();
+        let mut fs = FlatFS::new(s);
+        let file_name = "aaa".to_string();
+        let content = "yey".to_string();
+        let _ = fs.write(file_name, content.clone());
+        let a = fs.read("aaa".to_string()).unwrap();
+        assert_eq!(a.clone(), content)
+    }
 }

@@ -1,6 +1,9 @@
 use crate::MyError;
-use std::{alloc::{Allocator, Layout}, marker::PhantomData};
-use std::error::Error;
+use std::{
+    alloc::{Allocator, Layout},
+    error::Error,
+    marker::PhantomData,
+};
 
 /// storage trait defines the behavior of storage.
 pub trait Storage<P, Q, D, E> {
@@ -28,7 +31,9 @@ impl Storage<usize, usize, Vec<u8>, MyError>
     // size以上の書き込みを行おうとした場合、Errorにして返す
     fn write(&mut self, offset: usize, data: Vec<u8>) -> Result<(), Box<dyn Error>> {
         if offset + data.len() > 100000 {
-            return Err(Box::<dyn Error>::from(MyError::with_msg(String::from("overflow error"))))
+            return Err(Box::<dyn Error>::from(MyError::with_msg(String::from(
+                "overflow error",
+            ))));
         }
         for (i, v) in data.into_iter().enumerate() {
             self.mem[offset + i] = v

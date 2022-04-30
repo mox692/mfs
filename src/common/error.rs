@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(PartialEq, Eq, Debug,)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct MyError {
     pub(crate) msg: String,
 }

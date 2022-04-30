@@ -50,7 +50,8 @@ fn test_fs() {
     let contents = "this is contentes";
     let _ = fs.write(file_name, contents).unwrap();
     if let Some(c) = fs.read(file_name) {
-        if c != contents {
+        let cp = c.clone();
+        if cp != contents {
             panic!("expect {}, but got {}", contents, c)
         }
     } else {
