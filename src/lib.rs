@@ -1,5 +1,8 @@
 #![feature(allocator_api)]
 #![feature(slice_ptr_get)]
+#![feature(map_try_insert)]
+#![feature(unboxed_closures)]
+#![feature(never_type)]
 mod common;
 mod fierarchical_fs;
 mod flat_fs;
