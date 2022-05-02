@@ -11,7 +11,10 @@ use std::{
 /// ひとまず、StorageのkeyもvalueもString型で実装してみる
 pub struct FlatFS<K, V, E, S> {
     pub storage: S,
+    // file名をキーとして、そのファイルのメタ情報を保持しているHash Table.
     pub file_map: HashMap<K, V>,
+    // さしあたり今の実装では、newするタイミングで固定のblock sizeを与える
+    pub block_size: usize,
     _marker_k: PhantomData<K>,
     _marker_v: PhantomData<V>,
     _marker_e: PhantomData<E>,
@@ -22,10 +25,13 @@ pub struct FlatFS<K, V, E, S> {
 //
 
 impl<K, V, E> FlatFS<K, V, E, MemStorage<usize, usize, Vec<u8>, MyError>> {
+    // MEMO: ひとまず固定.
+    const BLOCK_SIZE: usize = 1000;
     pub fn new(s: MemStorage<usize, usize, Vec<u8>, MyError>) -> Self {
         Self {
             storage: s,
             file_map: HashMap::new(),
+            block_size: Self::BLOCK_SIZE,
             _marker_e: PhantomData,
             _marker_k: PhantomData::<K>,
             _marker_v: PhantomData::<V>,
@@ -42,7 +48,6 @@ where
     fn write(&mut self, file_name: K, contents: V) -> Result<(), Box<dyn Error>> {
         // TODO: valueに、storageの位置情報をいれる、storageへの書き込み処理
         if let Err(e) = self.file_map.try_insert(file_name, contents) {
-            // TODO: eをそのまま渡そうとするとErrorになる.
             return Err(Box::<dyn Error>::from(e.to_string()));
         }
         Ok(())
