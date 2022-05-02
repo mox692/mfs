@@ -30,7 +30,7 @@ impl Storage<usize, usize, Vec<u8>, MyError>
 {
     // size以上の書き込みを行おうとした場合、Errorにして返す
     fn write(&mut self, offset: usize, data: Vec<u8>) -> Result<(), Box<dyn Error>> {
-        if offset + data.len() > 100000 {
+        if offset + data.len() > Self::STORAGE_SIZE {
             return Err(Box::<dyn Error>::from(MyError::with_msg(String::from(
                 "overflow error",
             ))));
@@ -43,8 +43,8 @@ impl Storage<usize, usize, Vec<u8>, MyError>
     // size以上の読み込みを行おうとした場合、最後の要素まで読んで返す
     fn read(&self, offset: usize, size: usize) -> Vec<u8> {
         let mut s = size;
-        if offset + s > 100000 {
-            s = 100000 - offset
+        if offset + s > Self::STORAGE_SIZE {
+            s = Self::STORAGE_SIZE - offset
         }
         let mut vec: Vec<u8> = vec![0; size];
         for i in 0..size {
@@ -55,11 +55,12 @@ impl Storage<usize, usize, Vec<u8>, MyError>
 }
 
 impl MemStorage<usize, usize, Vec<u8>, MyError> {
+    pub const STORAGE_SIZE: usize = 100000;
     pub fn new() -> Self {
         Self {
             start_addr: 0,
             size: 0,
-            mem: [0; 100000],
+            mem: [0; Self::STORAGE_SIZE],
             _e: PhantomData::<MyError>,
             _p: PhantomData::<usize>,
             _q: PhantomData::<usize>,

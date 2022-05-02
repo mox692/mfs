@@ -1,20 +1,17 @@
 use super::super::FS;
-use crate::{MemStorage, MyError };
+use crate::{MemStorage, MyError, Stack, Storage};
 use std::{
-    collections::{HashMap},
-    error::Error,
-    fmt::Debug,
-    hash::{Hash},
-    marker::PhantomData,
+    collections::HashMap, error::Error, fmt::Debug, hash::Hash, marker::PhantomData,
 };
 
 /// ひとまず、StorageのkeyもvalueもString型で実装してみる
-pub struct FlatFS<K, V, E, S> {
+pub struct FlatFS<K, V, I, E, S> {
     pub storage: S,
     // file名をキーとして、そのファイルのメタ情報を保持しているHash Table.
-    pub file_map: HashMap<K, V>,
+    pub file_map: HashMap<K, I>,
+    // blockのindex - nodeInfo のHashTable
+    pub free_storage_stack: Stack,
     // さしあたり今の実装では、newするタイミングで固定のblock sizeを与える
-    pub block_size: usize,
     _marker_k: PhantomData<K>,
     _marker_v: PhantomData<V>,
     _marker_e: PhantomData<E>,
@@ -23,37 +20,73 @@ pub struct FlatFS<K, V, E, S> {
 //
 // 以下は具体実装
 //
-
-impl<K, V, E> FlatFS<K, V, E, MemStorage<usize, usize, Vec<u8>, MyError>> {
-    // MEMO: ひとまず固定.
-    const BLOCK_SIZE: usize = 1000;
-    pub fn new(s: MemStorage<usize, usize, Vec<u8>, MyError>) -> Self {
+#[derive(Clone, Copy)]
+pub struct FileNode<P, Q> {
+    offset: P,
+    size: Q,
+}
+impl FileNode<usize, usize> {
+    pub fn new(offset: usize, size: usize) -> Self {
         Self {
-            storage: s,
-            file_map: HashMap::new(),
-            block_size: Self::BLOCK_SIZE,
-            _marker_e: PhantomData,
-            _marker_k: PhantomData::<K>,
-            _marker_v: PhantomData::<V>,
+            offset: offset,
+            size: size,
         }
     }
 }
 
-impl<K, V> FS<K, V, MyError>
-    for FlatFS<K, V, MyError, MemStorage<usize, usize, Vec<u8>, MyError>>
+impl<K, E, I> FlatFS<K, Vec<u8>, I, E, MemStorage<usize, usize, Vec<u8>, MyError>> {
+    // MEMO: ひとまず固定.
+    const BLOCK_SIZE: usize = 1000;
+    pub fn new(s: MemStorage<usize, usize, Vec<u8>, MyError>) -> Self {
+        let block_num = MemStorage::STORAGE_SIZE / Self::BLOCK_SIZE;
+        Self {
+            storage: s,
+            // ファイル名 - Filenode
+            file_map: HashMap::new(),
+            free_storage_stack: Stack::new(),
+            _marker_e: PhantomData,
+            _marker_k: PhantomData::<K>,
+            _marker_v: PhantomData::<Vec<u8>>,
+        }
+    }
+
+    // TODO: 新しく空いてる領域を探してnodeを作成
+    // stackの先頭から空いてるindexを取ってくる
+    fn new_file_node(&self) -> Result<FileNode<usize, usize>, Box<dyn Error>> {
+        Ok(FileNode::new(0, 0))
+    }
+}
+
+impl<K> FS<K, Vec<u8>, MyError>
+    for FlatFS<
+        K,
+        Vec<u8>,
+        FileNode<usize, usize>,
+        MyError,
+        MemStorage<usize, usize, Vec<u8>, MyError>,
+    >
 where
     K: Hash + Eq + Debug,
-    V: Debug,
 {
-    fn write(&mut self, file_name: K, contents: V) -> Result<(), Box<dyn Error>> {
-        // TODO: valueに、storageの位置情報をいれる、storageへの書き込み処理
-        if let Err(e) = self.file_map.try_insert(file_name, contents) {
-            return Err(Box::<dyn Error>::from(e.to_string()));
-        }
-        Ok(())
+    // file_nameが存在しなかったら、そのファイルを新規で作成
+    fn write(&mut self, file_name: K, contents: Vec<u8>) -> Result<(), Box<dyn Error>> {
+        let info = match self.file_map.get(&file_name) {
+            // TODO: hashmapから取得するときcloneすることをどこかに明記する
+            | Some(i) => i.clone(),
+            | None => match self.new_file_node() {
+                | Err(e) => return Err(Box::<dyn Error>::from(e)),
+                | Ok(n) => n,
+            },
+        };
+        self.storage.write(info.offset, contents)
     }
-    fn read(&self, file_name: K) -> Option<&V> {
-        self.file_map.get(&file_name) 
+
+    fn read(&self, file_name: K) -> Option<Vec<u8>> {
+        let info = match self.file_map.get(&file_name) {
+            | Some(i) => i,
+            | None => return None,
+        };
+        Some(self.storage.read(info.offset, info.size))
     }
 }
 
@@ -66,9 +99,9 @@ mod tests {
         let s: MemStorage<usize, usize, Vec<u8>, MyError> = MemStorage::new();
         let mut fs = FlatFS::new(s);
         let file_name = "aaa".to_string();
-        let content = "yey".to_string();
+        let content = vec![21, 32];
         let _ = fs.write(file_name, content.clone());
-        let a = fs.read("aaa".to_string()).unwrap();
-        assert_eq!(a.clone(), content)
+        // let a = fs.read("aaa".to_string()).unwrap();
+        // assert_eq!(a.clone(), content)
     }
 }

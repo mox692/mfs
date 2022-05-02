@@ -9,7 +9,7 @@ mod flat_fs;
 mod fs;
 mod storage;
 
-pub use common::MyError;
+pub use common::{MyError, Stack};
 pub use fierarchical_fs::FierarchicalFS;
 pub use flat_fs::FlatFS;
 pub use fs::FS;
