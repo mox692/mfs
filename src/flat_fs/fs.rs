@@ -1,9 +1,15 @@
 use super::super::FS;
-use crate::{MemStorage, MyError, Stack, Storage};
+use crate::{MemStorage, MyError,  Storage};
 use std::{
     collections::HashMap, error::Error, fmt::Debug, hash::Hash, marker::PhantomData,
 };
 
+pub struct Stack {}
+impl Stack {
+    pub fn new() -> Self{
+        Self {}
+    }
+}
 /// ひとまず、StorageのkeyもvalueもString型で実装してみる
 pub struct FlatFS<K, V, I, E, S> {
     pub storage: S,
@@ -16,15 +22,17 @@ pub struct FlatFS<K, V, I, E, S> {
     _marker_v: PhantomData<V>,
     _marker_e: PhantomData<E>,
 }
-
-//
-// 以下は具体実装
-//
 #[derive(Clone, Copy)]
 pub struct FileNode<P, Q> {
     offset: P,
     size: Q,
 }
+
+//
+// 以下は具体実装
+//
+
+// offsetはblock indexを表す.
 impl FileNode<usize, usize> {
     pub fn new(offset: usize, size: usize) -> Self {
         Self {
